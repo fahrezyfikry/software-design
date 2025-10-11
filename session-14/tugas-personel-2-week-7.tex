@@ -323,6 +323,122 @@
 
   Gunakan pola Abstract Factory untuk membuat pabrik dengan dua produk tombol: satu yang mengubah warna latar belakang tombol saat mouse diarahkan dan yang lainnya yang mengubah dua warna latar belakang saat diklik.
 
+  \vspace{1em}
+
+  \begin{enumerate}[itemsep=1em]
+    \item \textbf{Button.java (Abstract Product)}
+    \begin{verbatim}
+public interface Button {
+    void render();
+    void onClick();
+}
+    \end{verbatim}
+    \item \textbf{HoverButton.java (Concrete Product - Hover)}
+    \begin{verbatim}
+public class HoverButton implements Button {
+    private String backgroundColor = "white";
+    private boolean isHovered = false;
+
+    @Override
+    public void render() {
+        System.out.println("Rendering HoverButton with background: " 
+            + backgroundColor);
+    }
+
+    @Override
+    public void onClick() {
+        System.out.println("HoverButton clicked!");
+    }
+
+    public void onMouseEnter() {
+        isHovered = true;
+        backgroundColor = "lightblue";
+        render();
+    }
+
+    public void onMouseLeave() {
+        isHovered = false;
+        backgroundColor = "white";
+        render();
+    }
+}
+    \end{verbatim}
+    \item \textbf{ClickButton.java (Concrete Product - Click)}
+    \begin{verbatim}
+public class ClickButton implements Button {
+    private String backgroundColor = "white";
+    private String textColor = "black";
+    private boolean isClicked = false;
+
+    @Override
+    public void render() {
+        System.out.println("Rendering ClickButton - Background: " 
+            + backgroundColor + ", Text: " + textColor);
+    }
+
+    @Override
+    public void onClick() {
+        isClicked = !isClicked;
+        if (isClicked) {
+            backgroundColor = "darkblue";
+            textColor = "white";
+        } else {
+            backgroundColor = "white";
+            textColor = "black";
+        }
+        render();
+    }
+}
+    \end{verbatim}
+    \item \textbf{ButtonFactory.java (Abstract Factory)}
+    \begin{verbatim}
+public interface ButtonFactory {
+    Button createButton();
+}
+    \end{verbatim}
+    \item \textbf{HoverButtonFactory.java (Concrete Factory)}
+    \begin{verbatim}
+public class HoverButtonFactory implements ButtonFactory {
+    @Override
+    public Button createButton() {
+        return new HoverButton();
+    }
+}
+    \end{verbatim}
+    \item \textbf{ClickButtonFactory.java (Concrete Factory)}
+    \begin{verbatim}
+public class ClickButtonFactory implements ButtonFactory {
+    @Override
+    public Button createButton() {
+        return new ClickButton();
+    }
+}
+      \end{verbatim}
+    \item \textbf{Main.java (Client Code)}
+    \begin{verbatim}
+public class Main {
+    public static void main(String[] args) {
+        ButtonFactory hoverFactory = new HoverButtonFactory();
+        Button hoverButton = hoverFactory.createButton();
+        hoverButton.render();
+        
+        if (hoverButton instanceof HoverButton) {
+            HoverButton hb = (HoverButton) hoverButton;
+            hb.onMouseEnter();
+            hb.onMouseLeave();
+        }
+        
+        ButtonFactory clickFactory = new ClickButtonFactory();
+        Button clickButton = clickFactory.createButton();
+        clickButton.render();
+        
+        clickButton.onClick();
+        clickButton.onClick();
+    }
+}
+    \end{verbatim}
+  \end{enumerate}
+
   \item (LO 3: 50\%) (LN 09 topik - Software Architecture and Architecture Views; LN 05 topik - Design case studies)
   
   Asumsikan Anda ingin menulis program Java yang menganimasikan bola yang bergerak bebas dan terpantul saat mengenai tepi (lalu bergerak ke arah pantulan). Bola dimanipulasi dengan utas terpisah.
@@ -330,6 +446,241 @@
   \vspace{1em}
 
   Berikan tampilan logika dari Model Tampilan 4+1 yang berfokus pada cara kerja program pada tingkat tinggi dan tampilan proses yang berfokus pada cara thread bola berinteraksi dengan thread utama.
+
+  \vspace{1em}
+
+  \begin{enumerate}[itemsep=1em]
+    \item \textbf{Ball.java}
+    \begin{verbatim}
+import java.awt.Color;
+import java.awt.Graphics;
+
+public class Ball {
+    private double x, y;
+    private double dx, dy;
+    private int radius;
+    private Color color;
+    private int panelWidth, panelHeight;
+
+    public Ball(double x, double y, double dx, double dy, 
+                int radius, Color color, 
+                int panelWidth, int panelHeight) {
+        this.x = x;
+        this.y = y;
+        this.dx = dx;
+        this.dy = dy;
+        this.radius = radius;
+        this.color = color;
+        this.panelWidth = panelWidth;
+        this.panelHeight = panelHeight;
+    }
+
+    public void move() {
+        x += dx;
+        y += dy;
+
+        if (x - radius < 0 || x + radius > panelWidth) {
+            dx = -dx;
+            if (x - radius < 0) x = radius;
+            if (x + radius > panelWidth) 
+                x = panelWidth - radius;
+        }
+
+        if (y - radius < 0 || y + radius > panelHeight) {
+            dy = -dy;
+            if (y - radius < 0) y = radius;
+            if (y + radius > panelHeight) 
+                y = panelHeight - radius;
+        }
+    }
+
+    public void draw(Graphics g) {
+        g.setColor(color);
+        g.fillOval((int)(x - radius), (int)(y - radius), 
+                   radius * 2, radius * 2);
+    }
+
+    public void updatePanelSize(int w, int h) {
+        this.panelWidth = w;
+        this.panelHeight = h;
+    }
+}
+    \end{verbatim}
+    \item \textbf{BallThread.java}
+    \begin{verbatim}
+public class BallThread extends Thread {
+    private Ball ball;
+    private BallPanel panel;
+    private volatile boolean running;
+    private int delay;
+
+    public BallThread(Ball ball, BallPanel panel, int delay) {
+        this.ball = ball;
+        this.panel = panel;
+        this.delay = delay;
+        this.running = true;
+    }
+
+    @Override
+    public void run() {
+        while (running) {
+            try {
+                ball.move();
+                panel.repaint();
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                running = false;
+            }
+        }
+    }
+
+    public void stopThread() {
+        running = false;
+        interrupt();
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+}
+    \end{verbatim}
+    \item \textbf{BallPanel.java}
+    \begin{verbatim}
+import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Dimension;
+import java.util.ArrayList;
+import java.util.List;
+
+public class BallPanel extends JPanel {
+    private List<Ball> balls;
+
+    public BallPanel() {
+        balls = new ArrayList<>();
+        setPreferredSize(new Dimension(800, 600));
+        setBackground(Color.BLACK);
+    }
+
+    public void addBall(Ball ball) {
+        balls.add(ball);
+    }
+
+    public void clearBalls() {
+        balls.clear();
+    }
+
+    public List<Ball> getBalls() {
+        return balls;
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        synchronized (balls) {
+            for (Ball ball : balls) {
+                ball.draw(g);
+            }
+        }
+    }
+
+    public void updateBallPanelSize() {
+        int w = getWidth(), h = getHeight();
+        synchronized (balls) {
+            for (Ball ball : balls) {
+                ball.updatePanelSize(w, h);
+            }
+        }
+    }
+}
+    \end{verbatim}
+    \item \textbf{BouncingBallApp.java}
+    \begin{verbatim}
+import javax.swing.*;
+import java.awt.*;
+import java.util.*;
+
+public class BouncingBallApp extends JFrame {
+    private BallPanel ballPanel;
+    private List<BallThread> ballThreads;
+    private Random random;
+
+    public BouncingBallApp() {
+        ballPanel = new BallPanel();
+        ballThreads = new ArrayList<>();
+        random = new Random();
+        setupUI();
+    }
+
+    private void setupUI() {
+        setTitle("Bouncing Ball - Multi-threaded");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        add(ballPanel, BorderLayout.CENTER);
+
+        JPanel controlPanel = new JPanel(new FlowLayout());
+        JButton addBallBtn = new JButton("Add Ball");
+        JButton clearBtn = new JButton("Clear All");
+        JButton stopBtn = new JButton("Stop All");
+        JButton startBtn = new JButton("Start All");
+
+        addBallBtn.addActionListener(e -> addRandomBall());
+        clearBtn.addActionListener(e -> clearAllBalls());
+        stopBtn.addActionListener(e -> stopAllThreads());
+        startBtn.addActionListener(e -> startAllThreads());
+
+        controlPanel.add(addBallBtn);
+        controlPanel.add(clearBtn);
+        controlPanel.add(stopBtn);
+        controlPanel.add(startBtn);
+
+        add(controlPanel, BorderLayout.SOUTH);
+        pack();
+        setLocationRelativeTo(null);
+    }
+
+    private void addRandomBall() {
+        int w = ballPanel.getWidth();
+        int h = ballPanel.getHeight();
+        double x = 50 + random.nextInt(w - 100);
+        double y = 50 + random.nextInt(h - 100);
+        double dx = -5 + random.nextDouble() * 10;
+        double dy = -5 + random.nextDouble() * 10;
+        int radius = 10 + random.nextInt(20);
+        Color color = new Color(random.nextInt(256),
+                               random.nextInt(256),
+                               random.nextInt(256));
+
+        Ball ball = new Ball(x, y, dx, dy, radius, 
+                            color, w, h);
+        ballPanel.addBall(ball);
+        BallThread thread = new BallThread(ball, 
+                                          ballPanel, 16);
+        ballThreads.add(thread);
+        thread.start();
+    }
+
+    private void clearAllBalls() {
+        stopAllThreads();
+        ballThreads.clear();
+        ballPanel.clearBalls();
+        ballPanel.repaint();
+    }
+
+    private void stopAllThreads() {
+        for (BallThread t : ballThreads) {
+            t.stopThread();
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new BouncingBallApp().setVisible(true);
+        });
+    }
+}
+    \end{verbatim}
+  \end{enumerate}
 \end{enumerate}
 
 Referensi:
