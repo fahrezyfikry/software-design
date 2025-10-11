@@ -449,6 +449,129 @@ public class Main {
 
   \vspace{1em}
 
+  Untuk masing-masing view dari gambaran Model Tampilan 4+1 untuk kasus bouncing ball dapat dilihat di halaman selanjutnya.
+
+  \begin{enumerate}[itemsep=1em]
+    \item \textbf{Logical View}
+    
+    \begin{center}
+      \includegraphics[width=0.5\textwidth,keepaspectratio]{bouncing-ball-logical-view.png}
+    \end{center}
+    
+    \begin{itemize}[itemsep=1em]
+      \item \textbf{Ball}: Model class yang menyimpan state (posisi x,y, velocity dx,dy, radius, warna). Mengandung logika untuk movement dan collision detection.
+      \item \textbf{BallThread}: Worker thread yang secara kontinyu mengupdate posisi ball dan meminta repaint ke panel. Setiap ball punya thread sendiri.
+      \item \textbf{BallPanel}: View class (extends JPanel) yang bertanggung jawab untuk rendering. Menyimpan list of balls dan menggambar mereka ke layar.
+      \item \textbf{BouncingBallApp}: Main controller class yang mengatur lifecycle aplikasi, menangani user input, dan mengkoordinasi antara model dan view.
+    \end{itemize}
+    \item \textbf{Process View}
+    \begin{center}
+      \includegraphics[width=0.5\textwidth,keepaspectratio]{bouncing-ball-process-view.png}
+    \end{center}
+    \begin{itemize}[itemsep=1em]
+      \item \textbf{Main Thread}: Menjalankan event loop Swing, menangani input user (tombol add/clear/stop/start), dan mengelola lifecycle BallThreads.
+      \item \textbf{BallThread(s)}: Setiap thread bertanggung jawab untuk satu ball. Mereka mengupdate posisi ball berdasarkan velocity, memeriksa collision dengan tepi panel, dan meminta repaint ke BallPanel.
+      \item \textbf{Synchronization}: Akses ke list of balls di BallPanel disinkronisasi untuk mencegah \(race condition\) saat beberapa thread mencoba mengupdate posisi ball secara bersamaan.
+      \item \textbf{Repaint Requests}: BallThreads memanggil \(repaint()\) pada BallPanel setelah mengupdate posisi, yang dijalankan di event dispatch thread utama untuk memastikan rendering yang aman.
+    \end{itemize}
+    \item \textbf{Development View}
+    \begin{center}
+      \includegraphics[width=0.5\textwidth,keepaspectratio]{bouncing-ball-development-view.png}
+    \end{center}
+    \begin{itemize}[itemsep=1em]
+      \item \textbf{Build Tools}:
+      \begin{itemize}
+        \item \textbf{JDK 17}: Java Development Kit untuk kompilasi dan eksekusi.
+        \item \textbf{JRE 17}: Java Runtime Environment untuk menjalankan aplikasi.
+      \end{itemize}
+      \item \textbf{Packages}:
+      \begin{itemize}
+        \item \texttt{model}: Berisi class Ball.
+        \item \texttt{thread}: Berisi class BallThread.
+        \item \texttt{view}: Berisi class BallPanel.
+        \item \texttt{app}: Berisi class BouncingBallApp.
+      \end{itemize}
+      \item \textbf{Dependencies}:
+      \begin{itemize}
+        \item \texttt{java.awt.*}: Untuk kelas-kelas grafis seperti \texttt{Graphics}, \texttt{Color}, dan \texttt{Dimension}.
+        \item \texttt{javax.swing.*}: Untuk kelas-kelas Swing seperti \texttt{JPanel}, \texttt{JFrame}, dan \texttt{JButton}.
+        \item \texttt{java.util.*}: Untuk kelas-kelas utilitas seperti \texttt{List}, \texttt{ArrayList}, dan \texttt{Random}.
+      \end{itemize}
+    \end{itemize}
+    \item \textbf{Deployment View}
+    \begin{center}
+      \includegraphics[height=0.4\textheight,keepaspectratio]{bouncing-ball-deployment-view.png}
+    \end{center}
+    \begin{itemize}[itemsep=1em]
+      \item \textbf{End-User Workstation}: Tempat aplikasi dijalankan.
+      \item \textbf{Operating System}: Aplikasi dapat berjalan di berbagai OS yang mendukung Java.
+      \item \textbf{Java Virtual Machine (JVM)}: Menyediakan lingkungan runtime untuk menjalankan bytecode Java.
+      \item \textbf{Bouncing Ball Application}: Aplikasi menampilkan GUI yang menampilkan grafik bola yang memantul.
+    \end{itemize}
+    \item \textbf{Use Case}
+    \begin{itemize}
+      \item \textbf{Use Case: Add Ball}
+      \begin{itemize}
+        \item Actor: User
+        \item Description: User menekan tombol "Add Ball" untuk menambahkan bola baru ke panel.
+        \item Precondition: Aplikasi sedang berjalan.
+        \item Postcondition: Bola baru muncul di panel dan mulai bergerak.
+        \item Main Flow:
+        \begin{enumerate}
+          \item User menekan tombol "Add Ball".
+          \item Aplikasi membuat instance baru dari Ball dengan posisi dan kecepatan acak.
+          \item Aplikasi membuat instance baru dari BallThread untuk bola tersebut dan memulai thread.
+          \item Bola mulai bergerak dan memantul di dalam panel.
+        \end{enumerate}
+      \end{itemize}
+      \item \textbf{Use Case: Clear All Balls}
+      \begin{itemize}
+        \item Actor: User
+        \item Description: User menekan tombol "Clear All" untuk menghapus semua bola dari panel.
+        \item Precondition: Aplikasi sedang berjalan dan ada bola di panel.
+        \item Postcondition: Semua bola dihapus dari panel dan thread terkait dihentikan.
+        \item Main Flow:
+        \begin{enumerate}
+          \item User menekan tombol "Clear All".
+          \item Aplikasi menghentikan semua BallThread yang sedang berjalan.
+          \item Aplikasi menghapus semua instance Ball dari BallPanel.
+          \item Panel diperbarui untuk menampilkan area kosong.
+        \end{enumerate}
+      \end{itemize}
+      \item \textbf{Use Case: Stop All Balls}
+      \begin{itemize}
+        \item Actor: User
+        \item Description: User menekan tombol "Stop All" untuk menghentikan semua bola yang sedang bergerak.
+        \item Precondition: Aplikasi sedang berjalan dan ada bola yang bergerak di panel.
+        \item Postcondition: Semua bola berhenti bergerak, tetapi tetap terlihat di panel.
+        \item Main Flow:
+        \begin{enumerate}
+          \item User menekan tombol "Stop All".
+          \item Aplikasi menghentikan semua BallThread yang sedang berjalan.
+          \item Bola tetap terlihat di panel, tetapi tidak bergerak.
+          \item Panel diperbarui untuk menampilkan bola yang berhenti.
+        \end{enumerate}
+      \end{itemize}
+      \item \textbf{Use Case: Start All Balls}
+      \begin{itemize}
+        \item Actor: User
+        \item Description: User menekan tombol "Start All" untuk memulai semua bola yang sedang berhenti.
+        \item Precondition: Aplikasi sedang berjalan dan ada bola yang berhenti di panel.
+        \item Postcondition: Semua bola mulai bergerak kembali.
+        \item Main Flow:
+        \begin{enumerate}
+          \item User menekan tombol "Start All".
+          \item Aplikasi memulai semua BallThread yang sedang berhenti.
+          \item Bola mulai bergerak kembali di panel.
+        \end{enumerate}
+      \end{itemize}
+    \end{itemize}
+  \end{enumerate}
+
+  \vspace{1em}
+
+  Pengaplikasian dari desain menjadi kode Java sebagai berikut:
+
   \begin{enumerate}[itemsep=1em]
     \item \textbf{Ball.java}
     \begin{verbatim}
