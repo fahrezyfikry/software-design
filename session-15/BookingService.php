@@ -4,6 +4,7 @@ require_once 'Observer.php';
 require_once 'Database.php';
 require_once 'DummyDatabase.php';
 require_once 'NotificationService.php';
+require_once 'Booking.php';
 
 class BookingService {
     private $observers = []; // Daftar observer untuk pattern Observer
@@ -38,7 +39,7 @@ class BookingService {
     // Membuat booking baru
     public function bookRoom($customerName, $customerEmail, $customerPhone, $roomType, $checkIn, $checkOut) {
         try {
-            // Buat room menggunakan Factory
+            // Buat room menggunakan Factory Pattern
             $room = RoomFactory::createRoom($roomType);
             $room->setRoomNumber(rand(100, 999));
             
@@ -51,46 +52,43 @@ class BookingService {
                 throw new Exception("Tanggal check-out harus setelah check-in");
             }
             
-            // Hitung total harga
-            $totalPrice = $room->getPrice() * $nights;
+            // Buat object Booking
+            $booking = new Booking(
+                $customerName,
+                $customerEmail,
+                $customerPhone,
+                $room->getType(),
+                $room->getRoomNumber(),
+                $checkIn,
+                $checkOut,
+                $nights,
+                $room->getPrice()
+            );
             
-            // Buat data booking
-            $booking = [
-                'id' => 'BK' . ($this->bookingCounter++),
-                'customer_name' => $customerName,
-                'customer_email' => $customerEmail,
-                'customer_phone' => $customerPhone,
-                'room_type' => $room->getType(),
-                'room_number' => $room->getRoomNumber(),
-                'check_in' => $checkIn,
-                'check_out' => $checkOut,
-                'nights' => $nights,
-                'price_per_night' => $room->getPrice(),
-                'total_price' => $totalPrice,
-                'status' => 'confirmed',
-                'created_at' => date('Y-m-d H:i:s')
-            ];
+            // Set ID dan konfirmasi
+            $booking->setId('BK' . ($this->bookingCounter++));
+            $booking->confirm();
             
             // Simpan ke database menggunakan Singleton
-            // Gunakan DummyDatabase untuk simulasi tanpa database asli
             $db = DummyDatabase::getInstance();
-            $db->save($booking);
+            $db->save($booking->toArray());
             
+            // Display info
             echo "\n=== BOOKING BERHASIL ===\n";
-            echo "Booking ID: " . $booking['id'] . "\n";
+            echo "Booking ID: " . $booking->getId() . "\n";
             echo "Customer: " . $customerName . "\n";
             echo "Kamar: " . $room->getDetails() . "\n";
             echo "Check-in: " . $checkIn . "\n";
             echo "Check-out: " . $checkOut . "\n";
             echo "Durasi: " . $nights . " malam\n";
-            echo "Total: Rp" . number_format($totalPrice, 0, ',', '.') . "\n";
+            echo "Total: Rp" . number_format($booking->getTotalPrice(), 0, ',', '.') . "\n";
             echo "========================\n";
             
-            // Notifikasi semua observer
-            $this->notify($booking);
+            // Notifikasi semua observer (Observer Pattern)
+            $this->notify($booking->toArray());
             
             // Send notification via NotificationService
-            $this->notificationService->sendBookingConfirmation($booking, ['email', 'sms']);
+            $this->notificationService->sendBookingConfirmation($booking->toArray(), ['email', 'sms']);
             
             return $booking;
             

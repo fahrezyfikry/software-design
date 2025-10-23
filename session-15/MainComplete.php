@@ -4,6 +4,8 @@ require_once 'Database.php';
 require_once 'DummyDatabase.php';
 require_once 'Room.php';
 require_once 'Observer.php';
+require_once 'User.php';
+require_once 'Booking.php';
 require_once 'UserService.php';
 require_once 'RoomService.php';
 require_once 'SearchService.php';
@@ -29,8 +31,10 @@ $user1 = $userService->register("Budi Santoso", "budi@email.com", "+62812345678"
 $user2 = $userService->register("Ani Wijaya", "ani@email.com", "+62898765432", "password456");
 
 echo "\n--- Login Test ---\n";
-$userService->login("budi@email.com", "password123");
-echo "Current user: " . $userService->getCurrentUser()['name'] . "\n";
+$loggedUser = $userService->login("budi@email.com", "password123");
+if ($loggedUser) {
+    echo "Current user: " . $loggedUser->getName() . "\n";
+}
 
 // Demo 2: Room Service
 echo "\n\n========== DEMO 2: ROOM SERVICE ==========\n";

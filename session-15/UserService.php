@@ -1,6 +1,7 @@
 <?php
 
 require_once 'DummyDatabase.php';
+require_once 'User.php';
 
 class UserService {
     private $db; // Instance database (Singleton)
@@ -12,28 +13,27 @@ class UserService {
 
     // Mendaftarkan user baru
     public function register($name, $email, $phone, $password) {
-        $user = [
-            'id' => 'USR' . rand(1000, 9999),
-            'name' => $name,
-            'email' => $email,
-            'phone' => $phone,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
-            'created_at' => date('Y-m-d H:i:s')
-        ];
+        // Buat object User
+        $user = new User($name, $email, $phone, $password);
+        $user->setId('USR' . rand(1000, 9999));
         
-        $this->db->saveUser($user);
+        // Simpan ke database
+        $this->db->saveUser($user->toArray());
         echo "✓ User berhasil terdaftar: " . $name . " (" . $email . ")\n";
         return $user;
     }
 
     // Login user dengan email dan password
     public function login($email, $password) {
-        $user = $this->db->getUserByEmail($email);
+        $userData = $this->db->getUserByEmail($email);
         
-        if ($user && password_verify($password, $user['password'])) {
-            $this->currentUser = $user;
-            echo "✓ Login berhasil: " . $user['name'] . "\n";
-            return $user;
+        if ($userData) {
+            $user = User::fromArray($userData);
+            if ($user->verifyPassword($password)) {
+                $this->currentUser = $user;
+                echo "✓ Login berhasil: " . $user->getName() . "\n";
+                return $user;
+            }
         }
         
         echo "✗ Login gagal: Email atau password salah\n";
@@ -43,7 +43,7 @@ class UserService {
     // Logout user yang sedang login
     public function logout() {
         if ($this->currentUser) {
-            echo "✓ User " . $this->currentUser['name'] . " telah logout\n";
+            echo "✓ User " . $this->currentUser->getName() . " telah logout\n";
             $this->currentUser = null;
         }
     }
@@ -65,8 +65,8 @@ class UserService {
             return false;
         }
 
-        $this->currentUser['name'] = $name;
-        $this->currentUser['phone'] = $phone;
+        $this->currentUser->setName($name);
+        $this->currentUser->setPhone($phone);
         echo "✓ Profile berhasil diupdate\n";
         return true;
     }
